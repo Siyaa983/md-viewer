@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#181825">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MD스튜디오">
+  
+  <!-- PWA 매니페스트 및 아이콘 연결 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  
+  <title>마크다운 스튜디오 (Markdown Live Editor)</title>
+  <style>
+    :root {
+      --bg-primary: #1e1e2e;
+      --bg-secondary: #252538;
+      --bg-panel: #181825;
+      --text-main: #cdd6f4;
+      --text-muted: #a6adc8;
+      --accent: #89b4fa;
+      --accent-hover: #b4befe;
+      --border-color: #313244;
+      --code-bg: #11111b;
+      --font-mono: "Fira Code", Consolas, Monaco, "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    /* 상단 네비게이션 / 툴바 */
+    header {
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    header::-webkit-scrollbar {
+      display: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .file-actions, .format-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      background-color: var(--bg-secondary);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      min-height: 36px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn:hover {
+      background-color: var(--border-color);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary {
+      background-color: #3b4261;
+      border-color: var(--accent);
+      color: var(--accent-hover);
+      font-weight: 600;
+    }
+
+    .btn-help {
+      background-color: #2b334a;
+      border-color: #585b70;
+      color: #f9e2af;
+      font-weight: 600;
+    }
+
+    .btn-install {
+      background: linear-gradient(135deg, #a6e3a1 0%, #00b894 100%);
+      color: #11111b;
+      font-weight: 700;
+      border: none;
+      display: none;
+    }
+
+    .separator {
+      width: 1px;
+      height: 18px;
+      background-color: var(--border-color);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* 모바일 뷰 전환 탭 (스마트폰용) */
+    .mobile-view-tabs {
+      display: none;
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 4px;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .tab-btn {
+      flex: 1;
+      max-width: 180px;
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .tab-btn.active {
+      background-color: var(--bg-primary);
+      color: var(--accent);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* 메인 화면 레이아웃 */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 200px;
+      height: 100%;
+      background-color: var(--bg-panel);
+    }
+
+    .pane-header {
+      background-color: var(--bg-secondary);
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 좌측 에디터 영역 */
+    #editor {
+      flex: 1;
+      background-color: var(--bg-panel);
+      color: #cdd6f4;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      overflow-y: auto;
+      tab-size: 2;
+      white-space: pre-wrap;
+      word-break: break-all;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #editor::placeholder {
+      color: #585b70;
+    }
+
+    /* 분할선 (데스크톱 및 태블릿 가로 모드) */
+    .resizer {
+      width: 8px;
+      background-color: var(--border-color);
+      cursor: col-resize;
+      transition: background-color 0.2s;
+      z-index: 10;
+      touch-action: none;
+    }
+
+    .resizer:hover, .resizer.dragging {
+      background-color: var(--accent);
+    }
+
+    /* 우측 실시간 프리뷰 영역 */
+    #preview-container {
+      flex: 1;
+      padding: 20px 24px;
+      overflow-y: auto;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.7;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 마크다운 렌더링 스타일 */
+    #preview-container h1, 
+    #preview-container h2, 
+    #preview-container h3, 
+    #preview-container h4 {
+      color: #fff;
+      font-weight: 700;
+      margin-top: 1.3em;
+      margin-bottom: 0.5em;
+      line-height: 1.3;
+    }
+
+    #preview-container h1 {
+      font-size: 1.8em;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.3em;
+    }
+
+    #preview-container h2 {
+      font-size: 1.4em;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.2em;
+    }
+
+    #preview-container h3 { font-size: 1.2em; }
+    #preview-container h4 { font-size: 1.05em; }
+
+    #preview-container p { margin-bottom: 1em; }
+    #preview-container a { color: var(--accent); text-decoration: none; }
+    #preview-container a:hover { text-decoration: underline; }
+    #preview-container strong { color: #f5c2e7; }
+    #preview-container em { color: #f9e2af; }
+    #preview-container del { color: var(--text-muted); }
+    #preview-container ul, #preview-container ol { margin-bottom: 1em; padding-left: 20px; }
+    #preview-container li { margin-bottom: 0.3em; }
+
+    #preview-container blockquote {
+      border-left: 4px solid var(--accent);
+      background-color: var(--bg-secondary);
+      padding: 8px 14px;
+      margin: 1em 0;
+      color: #bac2de;
+      border-radius: 0 6px 6px 0;
+    }
+
+    #preview-container code {
+      background-color: var(--code-bg);
+      color: #f38ba8;
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #313244;
+    }
+
+    #preview-container pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      margin: 1.2em 0;
+    }
+
+    #preview-container pre code {
+      background-color: transparent;
+      color: #a6e3a1;
+      padding: 0;
+      border: none;
+      font-size: 13px;
+    }
+
+    #preview-container hr {
+      border: none;
+      border-top: 1px solid var(--border-color);
+      margin: 1.6em 0;
+    }
+
+    #preview-container table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      display: block;
+      overflow-x: auto;
+    }
+
+    #preview-container th, #preview-container td {
+      border: 1px solid var(--border-color);
+      padding: 7px 12px;
+      text-align: left;
+    }
+
+    #preview-container th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+    }
+
+    #preview-container img {
+      max-width: 100%;
+      border-radius: 6px;
+      margin: 0.8em 0;
+    }
+
+    /* 하단 상태바 */
+    footer {
+      background-color: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      padding: 4px 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .status-left, .status-right {
+      display: flex;
+      gap: 12px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* 도움말 모달 스타일 */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 92%;
+      max-width: 600px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      transform: translateY(15px);
+      transition: transform 0.2s ease;
+      overflow: hidden;
+    }
+
+    .modal-backdrop.active .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 12px 18px;
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 16px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-main);
+    }
+
+    .help-section {
+      margin-bottom: 16px;
+    }
+
+    .help-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+      border-left: 3px solid var(--accent);
+      padding-left: 8px;
+    }
+
+    .help-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    .help-table th, .help-table td {
+      border: 1px solid var(--border-color);
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+    .help-table th {
+      background-color: var(--bg-secondary);
+      color: var(--accent-hover);
+      font-size: 11.5px;
+    }
+
+    .help-table td code {
+      background-color: var(--code-bg);
+      color: #f38ba8;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+    }
+
+    .kbd {
+      background-color: #313244;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+
+    /* --- 모바일 및 태블릿 반응형 최적화 --- */
+    @media (max-width: 768px) {
+      .brand span {
+        display: none;
+      }
+
+      .mobile-view-tabs {
+        display: flex;
+      }
+
+      .resizer {
+        display: none;
+      }
+
+      /* 기본은 에디터 표시, 탭에 따라 토글 */
+      body.show-preview #editor-pane {
+        display: none;
+      }
+
+      body.show-preview #preview-pane {
+        display: flex;
+      }
+
+      body:not(.show-preview) #editor-pane {
+        display: flex;
+      }
+
+      body:not(.show-preview) #preview-pane {
+        display: none;
+      }
+
+      .status-right {
+        display: none;
+      }
+
+      #preview-container {
+        padding: 16px;
+      }
+
+      #editor {
+        padding: 12px;
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 네비게이션 및 툴바 -->
+  <header>
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+      <span>Markdown Live Editor</span>
+    </div>
+
+    <!-- PWA 앱 설치 버튼 (지원 기기에서 자동 표시) -->
+    <button class="btn btn-install" id="installBtn">📲 앱 설치</button>
+
+    <!-- 빠른 서식 툴바 (터치 스크롤 가능) -->
+    <div class="format-tools">
+      <button class="btn" title="제목 (H1)" onclick="insertFormatting('# ', '')">H1</button>
+      <button class="btn" title="제목 (H2)" onclick="insertFormatting('## ', '')">H2</button>
+      <button class="btn" title="굵게" onclick="insertFormatting('**', '**')"><strong>B</strong></button>
+      <button class="btn" title="기울임" onclick="insertFormatting('*', '*')"><em>I</em></button>
+      <button class="btn" title="취소선" onclick="insertFormatting('~~', '~~')"><del>S</del></button>
+      <span class="separator"></span>
+      <button class="btn" title="인용구" onclick="insertFormatting('> ', '')">❝</button>
+      <button class="btn" title="인라인 코드" onclick="insertFormatting('`', '`')">&lt;/&gt;</button>
+      <button class="btn" title="코드 블록" onclick="insertFormatting('```\n', '\n```')">Code</button>
+      <button class="btn" title="링크" onclick="insertFormatting('[', '](https://)')">🔗</button>
+      <button class="btn" title="체크리스트" onclick="insertFormatting('- [ ] ', '')">☑</button>
+    </div>
+
+    <!-- 파일 조작 및 도움말 버튼 -->
+    <div class="file-actions">
+      <input type="file" id="fileInput" accept=".md,.markdown,.txt">
+      <button class="btn" onclick="document.getElementById('fileInput').click()">📂 열기</button>
+      <button class="btn" onclick="createNewFile()">📄 새문서</button>
+      <button class="btn btn-primary" onclick="exportFile()">💾 .md 저장</button>
+      <button class="btn" onclick="exportHTML()">🌐 HTML</button>
+      <span class="separator"></span>
+      <button class="btn btn-help" id="helpBtn" onclick="toggleHelpModal(true)" title="도움말">❓ 도움말</button>
+    </div>
+  </header>
+
+  <!-- 모바일 스마트폰용 탭 전환 바 -->
+  <nav class="mobile-view-tabs">
+    <button class="tab-btn active" id="tabEditorBtn" onclick="switchMobileTab('editor')">✏️ 편집기</button>
+    <button class="tab-btn" id="tabPreviewBtn" onclick="switchMobileTab('preview')">👁️ 미리보기</button>
+  </nav>
+
+  <!-- 메인 분할 뷰 -->
+  <main id="mainContainer">
+    <!-- 좌측/상단: 편집기 -->
+    <section class="pane" id="editor-pane">
+      <div class="pane-header">
+        <span>EDIT (Markdown)</span>
+        <span id="sync-scroll-label">스크롤 동기화</span>
+      </div>
+      <textarea id="editor" placeholder="여기에 마크다운을 입력하세요..." spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+    </section>
+
+    <!-- 분할선 (터치 및 마우스 드래그 조절) -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- 우측/하단: 실시간 미리보기 -->
+    <section class="pane" id="preview-pane">
+      <div class="pane-header">
+        <span>PREVIEW</span>
+        <span id="preview-info">실시간 렌더링</span>
+      </div>
+      <div id="preview-container"></div>
+    </section>
+  </main>
+
+  <!-- 하단 상태 표시줄 -->
+  <footer>
+    <div class="status-left">
+      <span id="stat-words">단어: 0</span>
+      <span id="stat-chars">글자: 0</span>
+      <span id="stat-lines">줄: 1</span>
+    </div>
+    <div class="status-right">
+      <span>UTF-8</span>
+      <span>PWA Offline Ready</span>
+    </div>
+  </footer>
+
+  <!-- 도움말 모달 -->
+  <div class="modal-backdrop" id="helpModal" onclick="handleBackdropClick(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📖 마크다운 스튜디오 모바일 가이드</span>
+        </div>
+        <button class="modal-close" onclick="toggleHelpModal(false)">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section">
+          <div class="help-title">📱 모바일 및 홈 화면 설치 (PWA)</div>
+          <p style="color: #a6adc8; font-size: 13px; line-height: 1.6;">
+            • <strong>안드로이드 Chrome:</strong> 상단 우측 메뉴(⋮)에서 <strong>[홈 화면에 추가]</strong> 또는 상단의 <strong>[📲 앱 설치]</strong> 버튼을 누르면 스마트폰에 독립형 앱으로 설치됩니다.<br>
+            • <strong>오프라인 지원:</strong> 서비스 워커(sw.js)가 탑재되어 비행기 탑승 모드나 인터넷이 없는 환경에서도 완벽히 구동됩니다.<br>
+            • <strong>스마트폰 탭 전환:</strong> 좁은 화면에서는 상단 [✏️ 편집기]와 [👁️ 미리보기] 탭을 눌러 한 손으로 편리하게 전환할 수 있습니다.
+          </p>
+        </div>
+
+        <div class="help-section">
+          <div class="help-title">📌 조작 팁</div>
+          <ul style="padding-left: 20px; margin-top: 6px;">
+            <li>상단 툴바는 손가락으로 좌우 스크롤이 가능합니다.</li>
+            <li>태블릿 등 넓은 화면에서는 중앙 분할선을 터치/드래그하여 원하는 비율로 조절할 수 있습니다.</li>
+            <li>키보드 연결 시 <span class="kbd">Tab</span> 키로 2칸 들여쓰기가 지원됩니다.</li>
+            <li>작성 중인 내용은 브라우저에 자동 보관되어 앱을 종료해도 유지됩니다.</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <div class="help-title">📝 마크다운 기본 문법</div>
+          <table class="help-table">
+            <thead>
+              <tr><th>스타일</th><th>입력 형식</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>제목</strong></td><td><code># 제목</code>, <code>## 소제목</code></td><td>크기별 제목</td></tr>
+              <tr><td><strong>텍스트 강조</strong></td><td><code>**굵게**</code>, <code>*기울임*</code></td><td>볼드/이탤릭</td></tr>
+              <tr><td><strong>취소선</strong></td><td><code>~~취소선~~</code></td><td>가운데 선</td></tr>
+              <tr><td><strong>인용구</strong></td><td><code>&gt; 인용 내용</code></td><td>인용 상자</td></tr>
+              <tr><td><strong>인라인 코드</strong></td><td><code>\`code\`</code></td><td>한 줄 코드</td></tr>
+              <tr><td><strong>코드 블록</strong></td><td><code>\`\`\`js ... \`\`\`</code></td><td>다중 줄 코드 영역</td></tr>
+              <tr><td><strong>체크리스트</strong></td><td><code>- [ ] 할 일</code></td><td>체크박스 생성</td></tr>
+              <tr><td><strong>표</strong></td><td><code>| 항목 | 내용 |</code></td><td>테이블 뷰</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview-container');
+    const fileInput = document.getElementById('fileInput');
+    const helpModal = document.getElementById('helpModal');
+    const installBtn = document.getElementById('installBtn');
+
+    const tabEditorBtn = document.getElementById('tabEditorBtn');
+    const tabPreviewBtn = document.getElementById('tabPreviewBtn');
+
+    const statWords = document.getElementById('stat-words');
+    const statChars = document.getElementById('stat-chars');
+    const statLines = document.getElementById('stat-lines');
+
+    let currentFileName = 'document.md';
+
+    // PWA 서비스 워커 등록
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker Registered:', reg.scope))
+          .catch((err) => console.log('Service Worker Registration Failed:', err));
+      });
+    }
+
+    // PWA 홈 화면 앱 설치 프롬프트 처리
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installBtn.style.display = 'none';
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.style.display = 'none';
+      deferredPrompt = null;
+    });
+
+    // 모바일 탭 전환
+    function switchMobileTab(tab) {
+      if (tab === 'editor') {
+        document.body.classList.remove('show-preview');
+        tabEditorBtn.classList.add('active');
+        tabPreviewBtn.classList.remove('active');
+      } else {
+        document.body.classList.add('show-preview');
+        tabPreviewBtn.classList.add('active');
+        tabEditorBtn.classList.remove('active');
+        render(); // 탭 열 때 렌더링 동기화
+      }
+    }
+
+    // 기본 예제 마크다운
+    const defaultSample = `# 📱 안드로이드 마크다운 스튜디오
+
+이 앱은 **안드로이드 스마트폰, 태블릿 및 PC**에서 자유롭게 사용할 수 있는 **PWA 기반 독립형 마크다운 에디터**입니다.
+
+---
+
+## 🌟 모바일 특화 기능
+1. **홈 화면 앱 설치 (PWA 지원)**
+   - 브라우저 메뉴의 **[홈 화면에 추가]** 또는 상단의 **[📲 앱 설치]** 버튼을 통해 기기에 실제 앱처럼 설치할 수 있습니다.
+2. **오프라인 완벽 구동 (Service Worker)**
+   - 인터넷 연결이 끊겨도 서비스 워커(\`sw.js\`)를 통해 언제 어디서든 문서를 작성하고 보관할 수 있습니다.
+3. **스마트폰 최적화 UI**
+   - 모바일 화면에서는 상단 **[✏️ 편집기]**와 **[👁️ 미리보기]** 탭을 통해 한 손으로 시원하게 전환하며 작업할 수 있습니다.
+4. **터치 친화적 툴바**
+   - 상단 포맷 툴바는 모바일 터치 스크롤을 지원하며, 탭 한 번으로 서식을 적용할 수 있습니다.
+5. **태블릿 2단 분할 뷰**
+   - 넓은 화면의 태블릿(가로 모드)에서는 좌우 2단 분할과 크기 조절 기능이 지원됩니다.
+
+---
+
+## 📝 체크리스트 예시
+- [x] PWA 매니페스트 (manifest.json) 및 아이콘 탑재
+- [x] 오프라인 캐싱 서비스 워커 (sw.js)
+- [x] 모바일 터치 최적화 레이아웃 (Safe Area 대응)
+- [ ] 오늘 작성할 마크다운 메모 입력해보기
+
+지금 바로 텍스트를 입력해보세요!`;
+
+    // 도움말 모달 토글
+    function toggleHelpModal(show) {
+      if (show) {
+        helpModal.classList.add('active');
+      } else {
+        helpModal.classList.remove('active');
+      }
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target === helpModal) toggleHelpModal(false);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleHelpModal(false);
+    });
+
+    // --- 경량 고속 자체 마크다운 파서 ---
+    function parseMarkdown(md) {
+      if (!md) return '';
+
+      let html = md
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      const codeBlocks = [];
+      html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+        codeBlocks.push(`<pre><code class="language-${lang}">${code.trim()}</code></pre>`);
+        return id;
+      });
+
+      const inlineCodes = [];
+      html = html.replace(/`([^`\n]+)`/g, (match, code) => {
+        const id = `__INLINE_CODE_${inlineCodes.length}__`;
+        inlineCodes.push(`<code>${code}</code>`);
+        return id;
+      });
+
+      html = html.replace(/^(?:---|\\*\\*\\*|___)\\s*$/gm, '<hr>');
+      html = html.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
+      html = html.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
+      html = html.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
+      html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+      html = html.replace(/^&gt; (.*$)/gm, '<blockquote>$1</blockquote>');
+      html = html.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
+
+      html = html.replace(/^- \[x\] (.*$)/gim, '<li style="list-style:none;">☑ $1</li>');
+      html = html.replace(/^- \[ \] (.*$)/gim, '<li style="list-style:none;">☐ $1</li>');
+      html = html.replace(/^\* (.*$)/gm, '<li>$1</li>');
+      html = html.replace(/^- (.*$)/gm, '<li>$1</li>');
+      html = html.replace(/^([0-9]+)\. (.*$)/gm, '<li>$1. $2</li>');
+      html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+      html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+      html = html.replace(/((?:\|[^\n]+\|\n?)+)/g, (match) => {
+        const lines = match.trim().split('\n');
+        if (lines.length < 2 || !lines[1].includes('---')) return match;
+        let tableHtml = '<table><thead><tr>';
+        const headers = lines[0].split('|').slice(1, -1).map(h => h.trim());
+        tableHtml += headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+        for (let i = 2; i < lines.length; i++) {
+          const row = lines[i].split('|').slice(1, -1).map(d => d.trim());
+          if (row.length === headers.length) {
+            tableHtml += '<tr>' + row.map(d => `<td>${d}</td>`).join('') + '</tr>';
+          }
+        }
+        tableHtml += '</tbody></table>';
+        return tableHtml;
+      });
+
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+      html = html.replace(/\n\n+/g, '</p><p>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      html = html.replace(/<p>(<h[1-6]>[\s\S]*?<\/h[1-6]>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<table>[\s\S]*?<\/table>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<ul>[\s\S]*?<\/ul>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<blockquote>[\s\S]*?<\/blockquote>)<\/p>/g, '$1');
+
+      inlineCodes.forEach((code, idx) => {
+        html = html.replace(`__INLINE_CODE_${idx}__`, code);
+      });
+      codeBlocks.forEach((block, idx) => {
+        html = html.replace(`<p>__CODE_BLOCK_${idx}__</p>`, block);
+        html = html.replace(`__CODE_BLOCK_${idx}__`, block);
+      });
+
+      return html;
+    }
+
+    function render() {
+      const text = editor.value;
+      preview.innerHTML = parseMarkdown(text);
+      updateStats(text);
+      try {
+        localStorage.setItem('saved_markdown_content', text);
+      } catch (e) {}
+    }
+
+    function updateStats(text) {
+      const chars = text.length;
+      const lines = text.length === 0 ? 0 : text.split('\n').length;
+      const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+      statChars.textContent = `글자: ${chars.toLocaleString()}`;
+      statWords.textContent = `단어: ${words.toLocaleString()}`;
+      statLines.textContent = `줄: ${lines.toLocaleString()}`;
+    }
+
+    function insertFormatting(prefix, suffix) {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const text = editor.value;
+      const selected = text.substring(start, end);
+
+      const replacement = prefix + selected + suffix;
+      editor.value = text.substring(0, start) + replacement + text.substring(end);
+      editor.focus();
+      editor.setSelectionRange(start + prefix.length, end + prefix.length);
+      render();
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      currentFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        editor.value = event.target.result;
+        render();
+      };
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        currentFileName = file.name;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          editor.value = event.target.result;
+          render();
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    function createNewFile() {
+      if (confirm('새 문서를 만드시겠습니까?')) {
+        editor.value = '# 새 문서\n\n내용을 작성하세요.';
+        currentFileName = 'untitled.md';
+        render();
+      }
+    }
+
+    function exportFile() {
+      const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = currentFileName.endsWith('.md') ? currentFileName : `${currentFileName}.md`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportHTML() {
+      const renderedContent = preview.innerHTML;
+      const fullHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${currentFileName.replace(/\.[^/.]+$/, "")}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 860px; margin: 20px auto; padding: 0 16px; color: #24292e; }
+    pre { background: #f6f8fa; padding: 14px; border-radius: 6px; overflow-x: auto; }
+    code { background: #f6f8fa; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #dfe2e5; padding: 8px 12px; }
+    th { background: #f6f8fa; }
+    blockquote { border-left: 4px solid #0366d6; color: #6a737d; padding-left: 14px; margin: 0; }
+    hr { border: none; border-top: 1px solid #e1e4e8; margin: 20px 0; }
+  </style>
+</head>
+<body>
+${renderedContent}
+</body>
+</html>`;
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${currentFileName.replace(/\.[^/.]+$/, "")}.html`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // 스크롤 동기화 (데스크톱/태블릿 가로 분할 시)
+    let isSyncingEditor = false;
+    let isSyncingPreview = false;
+
+    editor.addEventListener('scroll', () => {
+      if (window.innerWidth <= 768 || isSyncingEditor) return;
+      isSyncingPreview = true;
+      const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+      preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+    });
+
+    preview.addEventListener('scroll', () => {
+      if (window.innerWidth <= 768 || isSyncingPreview) return;
+      isSyncingEditor = true;
+      const percentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+      editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+    });
+
+    // 분할선 리사이즈 (마우스 및 터치 이벤트 동시 지원)
+    const resizer = document.getElementById('resizer');
+    const editorPane = document.getElementById('editor-pane');
+    let isDragging = false;
+
+    function startDrag(e) {
+      if (window.innerWidth <= 768) return;
+      isDragging = true;
+      resizer.classList.add('dragging');
+    }
+
+    function doDrag(clientX) {
+      if (!isDragging) return;
+      const totalWidth = window.innerWidth;
+      if (clientX > 150 && (totalWidth - clientX) > 150) {
+        editorPane.style.flex = 'none';
+        editorPane.style.width = `${clientX}px`;
+      }
+    }
+
+    function stopDrag() {
+      if (isDragging) {
+        isDragging = false;
+        resizer.classList.remove('dragging');
+      }
+    }
+
+    resizer.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', (e) => doDrag(e.clientX));
+    window.addEventListener('mouseup', stopDrag);
+
+    resizer.addEventListener('touchstart', (e) => {
+      startDrag();
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (isDragging && e.touches.length > 0) {
+        doDrag(e.touches[0].clientX);
+      }
+    }, { passive: true });
+    window.addEventListener('touchend', stopDrag);
+
+    // Tab 키 지원
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+        render();
+      }
+    });
+
+    editor.addEventListener('input', render);
+
+    // 초기 실행
+    const saved = localStorage.getItem('saved_markdown_content');
+    editor.value = saved || defaultSample;
+    render();
+  </script>
+</body>
+</html>
